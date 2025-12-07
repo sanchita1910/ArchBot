@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PocketLLM Admin</title>
+
+  <style>
+    :root {
+      --bg: #f5f5f7;
+      --card-bg: #ffffff;
+      --border-subtle: #e0e0e5;
+      --accent: #007aff;
+      --accent-soft: #e6f4ea;
+      --accent-strong: #16a34a;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-pill: 999px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(circle at top left, #ffffff 0, #f5f5f7 40%, #ececf1 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    header {
+      height: 56px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+      backdrop-filter: blur(16px);
+      background: rgba(248, 250, 252, 0.85);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffffff, #4f46e5);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .back-link {
+      border-radius: var(--radius-pill);
+      padding: 6px 12px;
+      border: 1px solid var(--border-subtle);
+      background: #f9fafb;
+      text-decoration: none;
+      color: var(--text-main);
+      font-size: 12px;
+    }
+
+    main {
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1040px;
+      display: grid;
+      grid-template-columns: 2fr 1.4fr;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      padding: 16px 18px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .health-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+    }
+
+    .health-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
+    }
+
+    .health-offline {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .health-offline .health-dot {
+      background: #ef4444;
+      box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.4);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .metric-pill {
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      padding: 8px 10px;
+      background: #f9fafb;
+      font-size: 12px;
+    }
+
+    .metric-label { color: var(--text-muted); margin-bottom: 2px; }
+    .metric-value { font-weight: 600; font-size: 14px; }
+
+    .metric-footnote {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .graph-wrapper { margin-top: 10px; }
+    canvas {
+      width: 100%;
+      max-width: 100%;
+      border-radius: var(--radius-md);
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .requests-summary {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .requests-summary strong {
+      font-size: 13px;
+      color: #111827;
+    }
+
+    .section-list {
+      margin-top: 8px;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      padding: 8px;
+      background: #f9fafb;
+    }
+
+    .list-item {
+      padding: 4px 0;
+      border-bottom: 1px dashed #e5e7eb;
+    }
+    .list-item:last-child { border-bottom: none; }
+
+    .btn-row {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-outline {
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 10px;
+      font-size: 12px;
+      background: #f9fafb;
+      cursor: pointer;
+    }
+
+    .btn-outline.danger {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    /* LOGIN OVERLAY */
+    #loginOverlay {
+      position: fixed;
+      inset: 0;
+      backdrop-filter: blur(4px);
+      background: rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    #loginBox {
+      width: 320px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 20px 22px;
+      text-align: center;
+    }
+
+    #loginBox h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .input-field {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .input-field input {
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-top: 4px;
+      font-size: 13px;
+    }
+
+    #loginBtn {
+      margin-top: 16px;
+      width: 100%;
+      border: none;
+      border-radius: var(--radius-pill);
+      padding: 8px;
+      background: #2563eb;
+      color: white;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    #loginError {
+      margin-top: 8px;
+      color: #dc2626;
+      font-size: 12px;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="loginOverlay">
+    <div id="loginBox">
+      <h2>Admin Login</h2>
+
+      <div class="input-field">
+        <label>Username</label>
+        <input id="loginUser" placeholder="" />
+      </div>
+
+      <div class="input-field">
+        <label>Password</label>
+        <input id="loginPass" type="password" placeholder="" />
+      </div>
+
+      <button id="loginBtn">Login</button>
+      <div id="loginError">Invalid credentials</div>
+    </div>
+  </div>
+
+  <header>
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <span>PocketLLM Admin</span>
+    </div>
+    <div class="header-right">
+      <span id="adminStatus">Live metrics view</span>
+      <a href="/" class="back-link">← Back to Chat</a>
+    </div>
+  </header>
+
+  <main id="adminMain" style="display:none;">
+    <div class="shell">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Model Health & Traffic</div>
+            <div class="card-subtitle">Live view of model status and incoming requests</div>
+          </div>
+
+          <div id="healthPill" class="health-pill">
+            <span class="health-dot"></span>
+            <span id="healthText">Checking…</span>
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-pill">
+            <div class="metric-label">Total Requests</div>
+            <div class="metric-value" id="m_requests">–</div>
+          </div>
+
+          <div class="metric-pill">
+            <div class="metric-label">Tokens Streamed</div>
+            <div class="metric-value" id="m_tokens">–</div>
+          </div>
+
+          <div class="metric-pill">
+            <div class="metric-label">Errors</div>
+            <div class="metric-value" id="m_errors">–</div>
+          </div>
+        </div>
+
+        <div class="metrics-grid" style="margin-top:10px;">
+          <div class="metric-pill">
+            <div class="metric-label">Cache Hit Ratio</div>
+            <div class="metric-value" id="m_cacheRatio">–</div>
+            <div class="metric-footnote" id="m_cacheDetail">hits / (hits + misses)</div>
+          </div>
+
+          <div class="metric-pill">
+            <div class="metric-label">Uptime (seconds)</div>
+            <div class="metric-value" id="m_uptime">–</div>
+          </div>
+
+          <div class="metric-pill">
+            <div class="metric-label">Requests / Interval</div>
+            <div class="metric-value" id="m_rpi">–</div>
+            <div class="metric-footnote">Same as latest bar in graph</div>
+          </div>
+        </div>
+
+        <div class="graph-wrapper">
+          <canvas id="reqChart" width="600" height="180"></canvas>
+
+          <div class="requests-summary">
+            Latest interval: <strong id="latestInterval">–</strong> requests  
+            · Showing last <span id="intervalCount">0</span> intervals
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Cache & Sessions</div>
+            <div class="card-subtitle">Visibility into cache keys and active sessions</div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button id="btnRefreshAll" class="btn-outline">Refresh All</button>
+          <button id="btnClearCache" class="btn-outline danger">Clear Cache</button>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div class="card-subtitle" style="margin-bottom:4px;">Cache Keys</div>
+          <div class="section-list" id="cacheList">Loading…</div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <div class="card-subtitle" style="margin-bottom:4px;">Sessions</div>
+          <div class="section-list" id="sessionList">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const backend = location.origin.replace(":3000", ":3001");
+
+    const overlay = document.getElementById("loginOverlay");
+    const adminMain = document.getElementById("adminMain");
+    const loginUser = document.getElementById("loginUser");
+    const loginPass = document.getElementById("loginPass");
+    const loginBtn = document.getElementById("loginBtn");
+    const loginError = document.getElementById("loginError");
+
+    loginBtn.onclick = () => {
+      if (loginUser.value === "admin" && loginPass.value === "csci578") {
+        overlay.style.display = "none";
+        adminMain.style.display = "block";
+
+        refreshAll();
+      } else {
+        loginError.style.display = "block";
+      }
+    };
+
+    const healthPill = document.getElementById("healthPill");
+    const healthText = document.getElementById("healthText");
+
+    const m_requests = document.getElementById("m_requests");
+    const m_tokens = document.getElementById("m_tokens");
+    const m_errors = document.getElementById("m_errors");
+    const m_cacheRatio = document.getElementById("m_cacheRatio");
+    const m_cacheDetail = document.getElementById("m_cacheDetail");
+    const m_uptime = document.getElementById("m_uptime");
+    const m_rpi = document.getElementById("m_rpi");
+
+    const cacheList = document.getElementById("cacheList");
+    const sessionList = document.getElementById("sessionList");
+
+    const latestIntervalSpan = document.getElementById("latestInterval");
+    const intervalCountSpan = document.getElementById("intervalCount");
+
+    const canvas = document.getElementById("reqChart");
+    const ctx = canvas.getContext("2d");
+
+    let lastRequests = null;
+    let reqIntervals = [];
+
+    async function fetchHealth() {
+      try {
+        const res = await fetch(`${backend}/v1/health`);
+        const j = await res.json();
+
+        if (j.status === "running") {
+          const modelName = j.availableModels?.[0] || "unknown";
+          healthText.textContent = `Healthy · ${modelName}`;
+          healthPill.classList.remove("health-offline");
+        } else if (j.status === "no_running") {
+          healthText.textContent = "No running model";
+          healthPill.classList.add("health-offline");
+        } else {
+          healthText.textContent = "Offline";
+          healthPill.classList.add("health-offline");
+        }
+      } catch {
+        healthText.textContent = "Offline";
+        healthPill.classList.add("health-offline");
+      }
+    }
+
+    async function fetchMetrics() {
+      try {
+        const res = await fetch(`${backend}/v1/admin/metrics`);
+        const j = await res.json();
+
+        m_requests.textContent = j.requests;
+        m_tokens.textContent = j.tokensStreamed;
+        m_errors.textContent = j.errors;
+
+        const hits = j.cacheHits || 0;
+        const misses = j.cacheMisses || 0;
+        const total = hits + misses;
+
+        m_cacheRatio.textContent =
+          total ? ((hits / total) * 100).toFixed(1) + "%" : "–";
+
+        m_cacheDetail.textContent = `${hits} hits / ${misses} misses`;
+
+        const uptimeSec = Math.floor(
+          (Date.now() - (j.startTs || Date.now())) / 1000
+        );
+        m_uptime.textContent = uptimeSec;
+
+        if (lastRequests === null) lastRequests = j.requests;
+        else {
+          const delta = j.requests - lastRequests;
+          lastRequests = j.requests;
+          reqIntervals.push(Math.max(delta, 0));
+          if (reqIntervals.length > 20) reqIntervals.shift();
+        }
+
+        const latest = reqIntervals.at(-1) || 0;
+        m_rpi.textContent = latest;
+        latestIntervalSpan.textContent = latest;
+        intervalCountSpan.textContent = reqIntervals.length;
+
+        drawRequestsChart();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function drawRequestsChart() {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.fillStyle = "#f9fafb";
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = "#e5e7eb";
+      for (let i = 1; i < 4; i++) {
+        const y = (h / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      if (!reqIntervals.length) return;
+
+      const max = Math.max(...reqIntervals);
+      const yMax = Math.max(max, 5);
+
+      const barWidth = w / Math.max(reqIntervals.length * 1.5, 10);
+      const gap = barWidth * 0.4;
+
+      reqIntervals.forEach((val, i) => {
+        const x = 10 + i * (barWidth + gap);
+        const height = (val / yMax) * (h - 20);
+        const y = h - height - 10;
+
+        ctx.fillStyle = i === reqIntervals.length - 1 ? "#2563eb" : "#93c5fd";
+        ctx.fillRect(x, y, barWidth, height);
+      });
+    }
+
+    async function fetchCache() {
+      try {
+        const res = await fetch(`${backend}/v1/cache`);
+        const j = await res.json();
+        if (!j.keys.length) {
+          cacheList.textContent = "No cache entries.";
+          return;
+        }
+        cacheList.innerHTML = "";
+        j.keys.forEach((k, i) => {
+          const d = document.createElement("div");
+          d.className = "list-item";
+          d.textContent = `${i + 1}. ${k}`;
+          cacheList.appendChild(d);
+        });
+      } catch {
+        cacheList.textContent = "Failed to load cache.";
+      }
+    }
+
+    async function fetchSessions() {
+      try {
+        const res = await fetch(`${backend}/v1/sessions`);
+        const j = await res.json();
+        if (!j.length) {
+          sessionList.textContent = "No sessions.";
+          return;
+        }
+        sessionList.innerHTML = "";
+        j.forEach((s, i) => {
+          const d = document.createElement("div");
+          d.className = "list-item";
+          d.textContent = `${i + 1}. ${s.title} (${s.turns?.length || 0} turns)`;
+          sessionList.appendChild(d);
+        });
+      } catch {
+        sessionList.textContent = "Failed to load sessions.";
+      }
+    }
+
+    async function clearCache() {
+      if (!confirm("Clear all cache?")) return;
+      await fetch(`${backend}/v1/cache`, { method: "DELETE" });
+      fetchCache();
+    }
+
+    document.getElementById("btnRefreshAll").onclick = refreshAll;
+    document.getElementById("btnClearCache").onclick = clearCache;
+
+    async function refreshAll() {
+      await Promise.all([fetchHealth(), fetchMetrics(), fetchCache(), fetchSessions()]);
+    }
+
+    setInterval(fetchMetrics, 3000);
+  </script>
+</body>
+</html>

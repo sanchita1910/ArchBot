@@ -1,0 +1,32 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports: ["11434:11434"]
+    volumes: ["ollama_models:/root/.ollama"]
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: pocketllm-backend
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2
+      - CACHE_TTL_MS=600000
+    volumes: ["backend_data:/app/data"]
+    ports: ["3001:3001"]
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: pocketllm-frontend
+    ports: ["3000:80"]
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  ollama_models:
+  backend_data:
